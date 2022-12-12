@@ -8,7 +8,7 @@ parser = argparse.ArgumentParser()
 #parser.add_argument('output_dir', help="Path to where the final files will be saved ")
 args = parser.parse_args()
 
-out_dir = '/home/stefan/transparent_target_rendering/images'
+out_dir = '/home/stefan/matting_rendering/images'
 
 bproc.init()
 
@@ -28,11 +28,11 @@ cam2world = np.array([
 bproc.camera.add_camera_pose(cam2world)
 
 # load the objects into the scene
-obj = bproc.loader.load_obj('/home/stefan/transparent_target_rendering/obj_000001.ply')[0]
+obj = bproc.loader.load_obj('/home/stefan/matting_rendering/obj_000001.ply')[0]
 obj.set_cp("category_id", 1)
 obj.set_scale([0.001, 0.001, 0.001])
 # Use vertex color for texturing
-print('mat: ', obj.get_materials())
+# https://dlr-rm.github.io/BlenderProc/_modules/blenderproc/python/types/MaterialUtility.html
 for mat in obj.get_materials():
     mat.map_vertex_color()
     #mat.set_principled_shader_value("Base Color", [1, 1, 1, 0.7])
@@ -48,53 +48,77 @@ for mat in obj.get_materials():
 
     bpy.data.materials[mat.get_name()].use_nodes = True
     #mat.use_nodes = True
-    print(mat)
-    print(mat.nodes)
-    nodes = mat.nodes
+
+    IOR = 1.5
+
     scene = bpy.context.scene
     node_tree = scene.node_tree
+    #node_tree = mat.node_tree
+
+    #node_tree.links.clear()
+    #node_tree.nodes.clear()
+
+    nodes = mat.nodes
+    print(nodes)
+    for node in nodes:
+        mat.remove_node
+        print(node)
 
     # Add a diffuse shader and set its location:
-    layer_weight = nodes.new('ShaderNodeLayerWeight')
-    rgb = nodes.new('ShaderNodeRGBCurve')
-    link_fresnel = node_tree.links.new(layer_weight.outputs[1], rgb.inputs[1])
-
+    fresnel = nodes.new('ShaderNodeFresnel')
+    fresnel.inputs[0].default_value = IOR
     gloss = nodes.new('ShaderNodeBsdfGlossy')
-    #gloss.inputs['Strength'].default_value = 5.0
+    #gloss.inputs[0].default_value = [1.0, 1.0, 1.0, 1.0] # color
+    #gloss.inputs[1].default_value = 0.5  # roughness
     trans = nodes.new('ShaderNodeBsdfTransparent')
-    #trans.inputs['Strength'].default_value = 5.0
-    mix = nodes.new('ShaderNodeBsdfGlossy')
+    #trans.inputs[0].default_value = [1.0, 1.0, 1.0, 1.0] # color
+    mix = nodes.new('ShaderNodeMixShader')
 
-    link_rgb_mix = node_tree.links.new(rgb.outputs[0], mix.inputs[0])
+    link_fresnel_mix = node_tree.links.new(fresnel.outputs[0], mix.inputs[0])
     link_gloss_mix = node_tree.links.new(gloss.outputs[0], mix.inputs[1])
     link_trans_mix = node_tree.links.new(trans.outputs[0], mix.inputs[2])
 
+    material_output = nodes.new("ShaderNodeOutputMaterial")
+    #material_output = nodes.get("Material Output")
+
     # link emission shader to material
-    link_mix_mat = mat.node_tree.links.new(material_output.inputs[0], mix.outputs[0])
+    link_mix_mat = mat.link(mix.outputs[0], material_output.inputs[0])
+    mat_new = bproc.material.convert_to_materials([mat])
+
+    obj.replace_materials(mat_new)
+
+    nodes = mat.nodes
+    print(nodes)
+    for node in nodes:
+        print(node)
 
 # Set pose of object via local-to-world transformation matrix
-
-#obj.set_local2world_mat(
-#    [[1.0, 0.0, 0.0, 0.0],
-#    [0.0, 1.0, 0.0, 0.0],
-#    [0.0, 0.0, 1.0, 1.0],
-#    [0, 0, 0, 1.0]]
-#)
+# set object location as is, since camera==world
 obj.set_location([0.0, 0.0, 0.3])
 obj.set_rotation_euler([0.0, np.pi*0.5, 0.0])
 
 obj.set_shading_mode('auto')
 
 # create room
-room_plane = bproc.object.create_primitive('PLANE', scale=[2, 2, 1], location=[0, 0, 3.0], rotation=[np.pi, 0, 0])
-image = bpy.data.images.load(filepath='/home/stefan/transparent_target_rendering/COCO_train2014_000000000009.jpg')
+room_plane = bproc.object.create_primitive('PLANE', scale=[3, 3, 1], location=[0, 0, 3.5], rotation=[np.pi, 0, 0])
+image = bpy.data.images.load(filepath='/home/stefan/matting_rendering/COCO_train2014_000000000009.jpg')
 plane_mat = bproc.material.create_material_from_texture(image, 'background_image_000')
-for mat in room_plane.get_materials():
-    print('mat: ', mat)
-# Set it as base color of the current material
-#plane_mat.set_principled_shader_value("Base Color", image)
 room_plane.replace_materials(plane_mat)
 room_plane.add_uv_mapping('smart')
+
+room_plane1 = bproc.object.create_primitive('PLANE', scale=[3, 3, 1], location=[2.0, 0, 1.5], rotation=[0, np.pi*0.5, 0])
+room_plane2 = bproc.object.create_primitive('PLANE', scale=[3, 3, 1], location=[-2.0, 0, 1.5], rotation=[0, -np.pi*0.5, 0])
+room_plane3 = bproc.object.create_primitive('PLANE', scale=[3, 3, 1], location=[0, 2.0, 1.5], rotation=[np.pi*0.5, 0, 0])
+room_plane4 = bproc.object.create_primitive('PLANE', scale=[3, 3, 1], location=[0, -2.0, 1.5], rotation=[-np.pi*0.5, 0, 0])
+
+room_plane1.replace_materials(plane_mat)
+room_plane1.add_uv_mapping('smart')
+room_plane2.replace_materials(plane_mat)
+room_plane2.add_uv_mapping('smart')
+room_plane3.replace_materials(plane_mat)
+room_plane3.add_uv_mapping('smart')
+room_plane4.replace_materials(plane_mat)
+room_plane4.add_uv_mapping('smart')
 
 # sample light color and strenght from ceiling
 light_plane = bproc.object.create_primitive('PLANE', scale=[3, 3, 1], location=[0, 0, -10], rotation=[0, 0, 0])
