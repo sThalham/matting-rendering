@@ -6,13 +6,17 @@ import bpy
 import cv2
 
 parser = argparse.ArgumentParser()
-#parser.add_argument('output_dir', help="Path to where the final files will be saved ")
+parser.add_argument('--root', help="Path to where the final files will be saved ")
+parser.add_argument('--obj', help="Path to where the final files will be saved ")
 args = parser.parse_args()
 
-root_path = '/home/stefan/matting_rendering'
+#root_path = '/home/stefan/matting_rendering'
+root_path = args.root
+obj_name = args.obj
 
 back_dir = os.path.join(root_path, 'graycode_512_512')
-out_dir = os.path.join(root_path, 'Calibration')
+out_dir = os.path.join(root_path, 'images')
+calib_dir = os.path.join(out_dir, 'Calibration')
 mesh_dir = os.path.join(root_path, 'obj_000001.ply')
 
 bproc.init()
@@ -44,9 +48,9 @@ plane_width = img_x / fx
 plane_height = img_y / fx
 room_plane = bproc.object.create_primitive('PLANE', scale=[plane_width, plane_height, 1], location=[plane_width*0.5, plane_height*0.5, 1.0], rotation=[np.pi, 0, 0])
 room_plane.add_uv_mapping('smart')
-light_plane_material = bproc.material.create('light_material')
-light_plane_material.make_emissive(emission_strength=10, emission_color=[1.0, 1.0, 1.0, 1.0])
-room_plane.replace_materials(light_plane_material)
+#light_plane_material = bproc.material.create('light_material')
+#light_plane_material.make_emissive(emission_strength=10, emission_color=[1.0, 1.0, 1.0, 1.0])
+#room_plane.replace_materials(light_plane_material)
 
 # Set camera pose via cam-to-world transformation matrix
 cam2world = np.array([
@@ -104,10 +108,18 @@ obj.set_shading_mode('auto')
 for iidx, b_img in enumerate(os.listdir(back_dir)):
 
     image_path = os.path.join(back_dir, b_img)
-    print(image_path)
     image = bpy.data.images.load(filepath=image_path)
     plane_mat = bproc.material.create_material_from_texture(image, 'background_image_' + str(iidx))
-    #plane_mat.make_emissive(emission_strength=100, emission_color=[1.0, 1.0, 1.0, 1.0])
+    plane_mat.make_emissive(emission_strength=10, emission_color=[1.0, 1.0, 1.0, 1.0])
+    #texture = plane_mat.new_node('ShaderNodeTexImage')
+    texture = plane_mat.get_the_one_node_with_type("ShaderNodeTexImage")
+    emission = plane_mat.new_node('ShaderNodeEmission')
+    emission.inputs[1].default_value = 1.0
+    material_output = plane_mat.get_the_one_node_with_type("OutputMaterial")
+
+    link_texture_emission = plane_mat.link(texture.outputs[0], emission.inputs[0])
+    link_emission_output = plane_mat.link(emission.outputs[0], material_output.inputs[0])
+
     room_plane.replace_materials(plane_mat)
 
     # render the whole pipeline
@@ -115,26 +127,59 @@ for iidx, b_img in enumerate(os.listdir(back_dir)):
     img = data["colors"][0]
 
     # normalize
-    min_img = np.nanmin(img)
-    max_img = np.nanmax(img)
-    img = img - min_img
-    img = img / (max_img - min_img)
-    img = (np.round(img) * 255.0).astype(np.uint8)
-
-    # binary
-    #img = img / 255.0
+    #min_img = np.nanmin(img)
+    #max_img = np.nanmax(img)
+    #img = img - min_img
+    #img = img / (max_img - min_img) * 1.0
     #img = (np.round(img) * 255.0).astype(np.uint8)
 
-    if os.path.exists(out_dir) == False:
-        os.makedirs(out_dir)
-    out_img_name = b_img.split("_")
-    save_img = os.path.join(out_dir, out_img_name[1])
+    print('image: ', np.unique(img))
+
+    # binary
+    img = img / 255.0
+    img = (np.round(img) * 255.0).astype(np.uint8)
+
+    out_img_name = b_img.split("_")[-1][:-4]
+    name_template = 'graycode_00'
+    out_img_name = name_template[:-len(out_img_name)] + str(out_img_name) + '.png'
+    print(name_template)
+    print(name_template[:-len(out_img_name)])
+    print(str(out_img_name))
+    out_calib = os.path.join(out_dir, 'Calibration', obj_name)
+    save_img = os.path.join(out_calib, out_img_name)
+    if os.path.exists(out_calib) == False:
+        os.makedirs(out_calib)
+
+    print('save_img: ', save_img)
     cv2.imwrite(save_img, img)
 
+data_seg = bproc.renderer.render_segmap()
+img_seg = data_seg["class_segmaps"][0]
+save_img = os.path.join(out_dir, obj_name + '_mask.png')
+cv2.imwrite(save_img, img_seg*255)
 
+light_plane_material = bproc.material.create('light_material')
+light_plane_material.make_emissive(emission_strength=10, emission_color=[1.0, 1.0, 1.0, 1.0])
+room_plane.replace_materials(light_plane_material)
 
+data_rho = bproc.renderer.render()
+img_rho = data_rho["colors"][0]
+save_img = os.path.join(out_dir, obj_name + '_rho.png')
+cv2.imwrite(save_img, img_rho)
 
+coco_img = os.path.join(root_path, 'COCO_train2014_000000000009.jpg')
+image = bpy.data.images.load(filepath=coco_img)
+plane_mat = bproc.material.create_material_from_texture(coco_img, 'coco_image')
+plane_mat.make_emissive(emission_strength=10, emission_color=[1.0, 1.0, 1.0, 1.0])
+texture = plane_mat.get_the_one_node_with_type("ShaderNodeTexImage")
+emission = plane_mat.new_node('ShaderNodeEmission')
+emission.inputs[1].default_value = 1.0
+material_output = plane_mat.get_the_one_node_with_type("OutputMaterial")
+link_texture_emission = plane_mat.link(texture.outputs[0], emission.inputs[0])
+link_emission_output = plane_mat.link(emission.outputs[0], material_output.inputs[0])
+room_plane.replace_materials(plane_mat)
 
-    #bproc.writer.write_bop(args.output_dir, [obj], data["depth"], data["colors"], m2mm=True, append_to_existing_output=True)
-    #bproc.writer.write_bop(out_dir, [obj], data["depth"], data["colors"], m2mm=True, append_to_existing_output=True)
-
+data_img = bproc.renderer.render()
+img_img = data_img["colors"][0]
+save_img = os.path.join(out_dir, obj_name + '.png')
+cv2.imwrite(save_img, img_rho)
