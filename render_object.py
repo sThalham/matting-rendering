@@ -34,63 +34,33 @@ obj.set_scale([0.001, 0.001, 0.001])
 # Use vertex color for texturing
 # https://dlr-rm.github.io/BlenderProc/_modules/blenderproc/python/types/MaterialUtility.html
 for mat in obj.get_materials():
-    mat.map_vertex_color()
-    #mat.set_principled_shader_value("Base Color", [1, 1, 1, 0.7])
-    #mat.set_principled_shader_value("Roughness", 0.05)
-    #mat.set_principled_shader_value("Metallic", 0.2)
-    #mat.set_principled_shader_value("Specular", 0.0)
-    #mat.set_principled_shader_value("Transmission", 1.0)
-    #mat.set_principled_shader_value("Transmission Roughness", 0.0)
-    #mat.set_principled_shader_value("IOR", 1.5)
-    #mat.set_principled_shader_value("Subsurface IOR", 1.0)
-    #mat.set_principled_shader_value("Subsurface IOR", 1.5)
-    #mat.set_principled_shader_value("Alpha", 0.5)
 
-    bpy.data.materials[mat.get_name()].use_nodes = True
-    #mat.use_nodes = True
+    mat.map_vertex_color()
 
     IOR = 1.5
 
-    scene = bpy.context.scene
-    node_tree = scene.node_tree
-    #node_tree = mat.node_tree
-
-    #node_tree.links.clear()
-    #node_tree.nodes.clear()
-
-    nodes = mat.nodes
-    print(nodes)
-    for node in nodes:
-        mat.remove_node
-        print(node)
-
-    # Add a diffuse shader and set its location:
-    fresnel = nodes.new('ShaderNodeFresnel')
-    fresnel.inputs[0].default_value = IOR
-    gloss = nodes.new('ShaderNodeBsdfGlossy')
-    #gloss.inputs[0].default_value = [1.0, 1.0, 1.0, 1.0] # color
-    #gloss.inputs[1].default_value = 0.5  # roughness
-    trans = nodes.new('ShaderNodeBsdfTransparent')
+    #general transparency
+    #fresnel = mat.new_node('ShaderNodeFresnel')
+    #fresnel.inputs[0].default_value = IOR
+    #gloss = mat.new_node('ShaderNodeBsdfGlossy')
+    ##gloss.inputs[0].default_value = [1.0, 1.0, 1.0, 1.0] # color
+    #gloss.inputs[1].default_value = 0.0  # roughness
+    #trans = mat.new_node('ShaderNodeBsdfTransparent')
     #trans.inputs[0].default_value = [1.0, 1.0, 1.0, 1.0] # color
-    mix = nodes.new('ShaderNodeMixShader')
+    #mix = mat.new_node('ShaderNodeMixShader')
+    #material_output = mat.get_the_one_node_with_type("OutputMaterial")
 
-    link_fresnel_mix = node_tree.links.new(fresnel.outputs[0], mix.inputs[0])
-    link_gloss_mix = node_tree.links.new(gloss.outputs[0], mix.inputs[1])
-    link_trans_mix = node_tree.links.new(trans.outputs[0], mix.inputs[2])
+    #link_fresnel_mix = mat.link(fresnel.outputs[0], mix.inputs[0])
+    #link_gloss_mix = mat.link(gloss.outputs[0], mix.inputs[1])
+    #link_trans_mix = mat.link(trans.outputs[0], mix.inputs[2])
+    #link_mix_mat = mat.link(mix.outputs[0], material_output.inputs[0])
 
-    material_output = nodes.new("ShaderNodeOutputMaterial")
-    #material_output = nodes.get("Material Output")
-
-    # link emission shader to material
-    link_mix_mat = mat.link(mix.outputs[0], material_output.inputs[0])
-    mat_new = bproc.material.convert_to_materials([mat])
-
-    obj.replace_materials(mat_new)
-
-    nodes = mat.nodes
-    print(nodes)
-    for node in nodes:
-        print(node)
+    # glass transparency
+    glass = mat.new_node('ShaderNodeBsdfGlass')
+    glass.inputs[1].default_value = 0.2  # Roughness
+    glass.inputs[2].default_value = IOR  # IOR
+    material_output = mat.get_the_one_node_with_type("OutputMaterial")
+    link_glass_mat = mat.link(glass.outputs[0], material_output.inputs[0])
 
 # Set pose of object via local-to-world transformation matrix
 # set object location as is, since camera==world
