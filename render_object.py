@@ -13,11 +13,18 @@ out_dir = '/home/stefan/matting_rendering/images'
 bproc.init()
 
 # Set intrinsics via K matrix
+#bproc.camera.set_intrinsics_from_K_matrix(
+#    [[537.4799, 0.0, 318.8965],
+#     [0.0, 536.1447, 238.3781],
+#     [0.0, 0.0, 1.0]], 640, 480
+#)
+
 bproc.camera.set_intrinsics_from_K_matrix(
-    [[537.4799, 0.0, 318.8965],
-     [0.0, 536.1447, 238.3781],
-     [0.0, 0.0, 1.0]], 640, 480
+    [[537.4799, 0.0, 128.0],
+     [0.0, 536.1447, 128.0],
+     [0.0, 0.0, 1.0]], 256, 256
 )
+
 # Set camera pose via cam-to-world transformation matrix
 cam2world = np.array([
     [1, 0, 0, 0],
@@ -57,7 +64,7 @@ for mat in obj.get_materials():
 
     # glass transparency
     glass = mat.new_node('ShaderNodeBsdfGlass')
-    glass.inputs[1].default_value = 0.2  # Roughness
+    glass.inputs[1].default_value = 0.05  # Roughness
     glass.inputs[2].default_value = IOR  # IOR
     material_output = mat.get_the_one_node_with_type("OutputMaterial")
     link_glass_mat = mat.link(glass.outputs[0], material_output.inputs[0])
