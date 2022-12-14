@@ -18,7 +18,8 @@ print('obj_name: ', obj_name)
 back_dir = os.path.join(root_path, 'graycode_512_512')
 out_dir = os.path.join(root_path, 'Images')
 calib_dir = os.path.join(out_dir, 'Calibration')
-mesh_dir = os.path.join(root_path, 'obj_000001.ply')
+mesh_dir = os.path.join(root_path, 'bottle.ply')
+scene_img = os.path.join(root_path, '000000.jpg')
 
 bproc.init()
 # activate depth rendering without antialiasing and set amount of samples for color rendering
@@ -26,14 +27,6 @@ bproc.renderer.enable_depth_output(activate_antialiasing=False)
 bproc.renderer.set_max_amount_of_samples(50)
 max_bounces = 10
 bproc.renderer.set_light_bounces(glossy_bounces=max_bounces, max_bounces=max_bounces, transmission_bounces=max_bounces, transparent_max_bounces=max_bounces, volume_bounces=max_bounces)
-
-
-# Set intrinsics via K matrix
-#bproc.camera.set_intrinsics_from_K_matrix(
-#    [[537.4799, 0.0, 318.8965],
-#     [0.0, 536.1447, 238.3781],
-#     [0.0, 0.0, 1.0]], 640, 480
-#)
 
 img_x, img_y = 512, 512
 fx, fy = 537.4799, 536.1447
@@ -43,6 +36,33 @@ bproc.camera.set_intrinsics_from_K_matrix(
      [0.0, fy, img_y * 0.5],
      [0.0, 0.0, 1.0]], img_x, img_y
 )
+
+
+#######################################
+# example for image to crop transform
+# pose
+# [{'cam_R_m2c': [0.9985835999418678,
+#    0.0,
+#    -0.05320520582744299,
+#    -0.0438628583287136,
+#    -0.5659943101033659,
+#    -0.8232414533961775,
+#    -0.030113843766211186,
+#    0.8244091465592889,
+#    -0.5651926357296327],
+#   'cam_t_m2c': [-0.034610493479483875, 0.0876175923765, 0.7220573983027752],
+#   'obj_id': 0}]
+
+#######################
+bbox = [520, 360, 620, 460]
+# crop images
+scene_img = cv2.imread(scene_img)
+scene_img = scene_img[360:460, 520:620, :]
+scene_img = cv2.resize(scene_img, (img_x, img_y))
+
+adjust pose based on crop
+
+
 
 # compute background plane size
 plane_width = ((img_x * 1000.0) / fx) * 0.0005
