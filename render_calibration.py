@@ -45,9 +45,10 @@ bproc.camera.set_intrinsics_from_K_matrix(
 )
 
 # compute background plane size
-plane_width = img_x / fx
-plane_height = img_y / fx
-room_plane = bproc.object.create_primitive('PLANE', scale=[plane_width, plane_height, 1], location=[plane_width*0.5, plane_height*0.5, 1.0], rotation=[np.pi, 0, 0])
+plane_width = ((img_x * 1000.0) / fx) * 0.0005
+plane_height = ((img_y * 1000.0) / fx) * 0.0005
+print(plane_width, plane_height)
+room_plane = bproc.object.create_primitive('PLANE', scale=[plane_width, plane_height, 1], location=[0.0, 0.0, 1.0], rotation=[np.pi, 0, 0])
 room_plane.add_uv_mapping('smart')
 #light_plane_material = bproc.material.create('light_material')
 #light_plane_material.make_emissive(emission_strength=10, emission_color=[1.0, 1.0, 1.0, 1.0])
@@ -127,6 +128,12 @@ cv2.imwrite(save_img, img_rho)
 out_img_name = name_template[:-1] + str(2) + '.png'
 out_calib = os.path.join(out_dir, 'Calibration', obj_name)
 save_img = os.path.join(out_calib, out_img_name)
+# normalize
+min_img = np.nanmin(img_rho)
+max_img = np.nanmax(img_rho)
+img_rho = img_rho - min_img
+img_rho = img_rho / (max_img - min_img) * 255.0
+img_rho = img_rho.astype(np.uint8)
 cv2.imwrite(save_img, img_rho)
 
 for iidx, b_img in enumerate(os.listdir(back_dir)):
@@ -164,7 +171,12 @@ for iidx, b_img in enumerate(os.listdir(back_dir)):
     #img = (np.round(img) * 255.0).astype(np.uint8)
 
     out_img_name = b_img.split("_")[-1][:-4]
-    out_img_name = name_template[:-len(out_img_name)] + str(int(out_img_name)+2) + '.png'
+    out_enum = str(int(out_img_name)+2)
+    print(out_img_name)
+    print(int(out_img_name))
+    print(int(out_img_name) + 2)
+    print(str(int(out_img_name)+2))
+    out_img_name = name_template[:-len(out_enum)] + out_enum + '.png'
     out_calib = os.path.join(out_dir, 'Calibration', obj_name)
     save_img = os.path.join(out_calib, out_img_name)
 
