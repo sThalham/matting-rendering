@@ -95,7 +95,6 @@ def readImgOrLoadNpy():
         img_list = utils.readImgListFromDir(args.in_dir, exts, sort=True)
         if not args.mute:
             print('Totaling %d images' % len(img_list))
-        print('img list: ', img_list)
         imgs = utils.readImgFromList(img_list)
         utils.listRgb2Gray(imgs)
         np.save(os.path.join(args.in_root, 'imgs.npy'), imgs)
@@ -105,15 +104,10 @@ def checkImgNumber(imgs):
     img_num = len(imgs)
     h = imgs[0].shape[0]
     w = imgs[0].shape[1]
-    print(h, w)
-    print(2 + int(np.log2(h)) + int(np.log2(w)))
-    print(img_num)
-    #if not (img_num == 2 + int(np.log2(h)) + int(np.log2(w))):
-    if not (img_num == 20):
+    if not (img_num == 2 + int(np.log2(h)) + int(np.log2(w))):
         raise Exception('Not correct image number: %dX%dX%d' % (img_num, h, w))
 
 if __name__ == '__main__':
-    print('in img: ', args.in_root)
     args.in_dir  = os.path.join(args.in_root, args.in_dir)
     imgs = readImgOrLoadNpy()
     checkImgNumber(imgs)
@@ -121,7 +115,7 @@ if __name__ == '__main__':
     args.out_name = '%s_flow' % (os.path.basename(args.in_dir))
     if args.out_dir == '':
         args.out_dir = os.path.join(args.in_root, 'correspondence')
-    print(args.out_dir)
+
     utils.makeFile(args.out_dir)
     calibrator = FlowCalibrator(imgs)
     calibrator.findCorrespondence()

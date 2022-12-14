@@ -8,9 +8,6 @@ obj="bottle_normal"
 template=${dataDir}"template.pov"
 setting=${dataDir}"setting.pov"
 
-# Render data
-blenderproc run ~/matting_rendering/render_calibration.py root_dir=calibDir
-
 # Render setting
 D="Declare="
 common="+H720 +W1280 -GR -GS -GW +GFerror +GP +FJ +A -D" # Common POV-RAY render setting
