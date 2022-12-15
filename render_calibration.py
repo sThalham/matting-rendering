@@ -113,11 +113,11 @@ obj_z = 0.7220573983027752
 obj_rot = np.array([0.9985835999418678, 0.0, -0.05320520582744299, -0.0438628583287136, -0.5659943101033659, -0.8232414533961775, -0.030113843766211186, 0.8244091465592889, -0.5651926357296327]).reshape((3,3))
 
 
-bproc.camera.set_intrinsics_from_K_matrix(
-    [[fx, 0.0, img_x * 0.5],
-     [0.0, fy, img_y * 0.5],
-     [0.0, 0.0, 1.0]], img_x, img_y
-)
+#bproc.camera.set_intrinsics_from_K_matrix(
+#    [[fx, 0.0, img_x * 0.5],
+#     [0.0, fy, img_y * 0.5],
+#     [0.0, 0.0, 1.0]], img_x, img_y
+#)
 #######################
 # crop images
 scene_img = cv2.imread(scene_img)
@@ -152,21 +152,30 @@ print('cam_z2obj: ', cam_z2obj)
 #    [0, 0, 0, 1]
 #])
 #bproc.camera.add_camera_pose(cam2world)
+print('obj_z: ', obj_z)
 
-poi = [obj_x, obj_y, obj_z]
-shift_cam_factor = cam_z2obj / obj_z
-poi_adjust = [poi[0] * shift_cam_factor, poi[1] * shift_cam_factor, poi[2] * shift_cam_factor]
-rotation_matrix = bproc.camera.rotation_from_forward_vec(poi_adjust)#, inplane_rot=np.random.uniform(-0.7854, 0.7854))
-cam2world_matrix = bproc.math.build_transformation_mat(poi_adjust, rotation_matrix)
+#poi = [obj_x, obj_y, obj_z]
+#shift_cam_factor = cam_z2obj / obj_z
+#poi_adjust = [poi[0] * shift_cam_factor, poi[1] * shift_cam_factor, poi[2] * shift_cam_factor]
+poi = [obj_x, obj_y, obj_z-cam_z2obj]
+rotation_matrix = bproc.camera.rotation_from_forward_vec([0.0, 0.0, 1.0])#, inplane_rot=np.random.uniform(-0.7854, 0.7854))
+cam2world_matrix = bproc.math.build_transformation_mat(poi, rotation_matrix)
 bproc.camera.add_camera_pose(cam2world_matrix)
+
+adj_f = cam_z2obj / obj_z
+bproc.camera.set_intrinsics_from_K_matrix(
+    [[fx * adj_f, 0.0, img_x * 0.5],
+     [0.0, fy * adj_f, img_y * 0.5],
+     [0.0, 0.0, 1.0]], img_x, img_y
+)
 
 # compute background plane size
 plane_width = ((img_x * 1.0) / fx) * 0.5
 plane_height = ((img_y * 1.0) / fy) * 0.5
 
-shift_plane_factor = (poi_adjust[2] + 1.0) / poi_adjust[2]
-plane_location = [poi_adjust[0] * shift_plane_factor, poi_adjust[1] * shift_plane_factor, poi_adjust[2] * shift_plane_factor]
-print('cam_location: ', poi_adjust)
+shift_plane_factor = (poi[2] + 1.0) / poi[2]
+plane_location = [obj_x, obj_y, poi[2] + 1.0]
+print('cam_location: ', poi)
 print('plane_location: ', plane_location)
 
 roll, pitch, yaw = tf3d.euler.mat2euler(rotation_matrix)
