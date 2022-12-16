@@ -103,8 +103,10 @@ bproc.renderer.set_light_bounces(glossy_bounces=max_bounces, max_bounces=max_bou
 # those are placeholders, to be replaced for online computation
 img_x, img_y = 512, 512
 #fx, fy = 537.4799, 536.1447
-fx = 675.61713
-fy=  675.61713
+fx = 675.61713 / 1.5
+fy = 675.61713 / 1.5
+cx = (632.1181 - 160.0) / 1.5
+cy = 338.28537 / 1.5
 
 bbox = [578.0019607843137, 379.0019607843137, 42.99607843137255, 80.99607843137255]
 obj_x = -0.034610493479483875
@@ -119,10 +121,6 @@ obj_rot = np.array([0.9985835999418678, 0.0, -0.05320520582744299, -0.0438628583
 #     [0.0, 0.0, 1.0]], img_x, img_y
 #)
 #######################
-# crop images
-scene_img = cv2.imread(scene_img)
-scene_img = scene_img[int(bbox[1]):int(bbox[1]+bbox[3]), int(bbox[0]):int(bbox[0]+bbox[2]), :]
-scene_img = cv2.resize(scene_img, (img_x, img_y))
 
 # load the objects into the scene
 obj = bproc.loader.load_obj(mesh_dir)[0]
@@ -136,52 +134,52 @@ obj.set_rotation_euler([roll, pitch, yaw])
 # position camera facing to object
 # using bounding box to comp distance
 max_box = np.max([bbox[2], bbox[3]])
-focal = fx
-if np.argmax([bbox[2], bbox[3]]) == 1:
-    focal = fy
+
 max_box_3D = ((max_box * 1.5 * obj_z) / fx) # 1.5 for increasing bounding box size and for accounting for bbox inaccuracies
 
-print('max_box_3D: ', max_box_3D)
-cam_z2obj = ((max_box_3D * fx) / max_box ) * 0.5
-print('cam_z2obj: ', cam_z2obj)
+# z/f = z'/f'
+#adj_f = max_box / 512.0
+adj_f = 512.0 / max_box
 
-#cam2world = np.array([
-#    [1, 0, 0, 0],
-#    [0, -1, 0, 0],
-#    [0, 0, -1, 0],
-#    [0, 0, 0, 1]
-#])
-#bproc.camera.add_camera_pose(cam2world)
-print('obj_z: ', obj_z)
+#print('max_box_3D: ', max_box_3D)
+#cam_z2obj = ((max_box_3D * fx) / max_box ) * 0.5
+#print('cam_z2obj: ', cam_z2obj)
 
-#poi = [obj_x, obj_y, obj_z]
-#shift_cam_factor = cam_z2obj / obj_z
-#poi_adjust = [poi[0] * shift_cam_factor, poi[1] * shift_cam_factor, poi[2] * shift_cam_factor]
-poi = [obj_x, obj_y, obj_z-cam_z2obj]
+cam2world = np.array([
+    [1, 0, 0, 0],
+    [0, -1, 0, 0],
+    [0, 0, -1, 0],
+    [0, 0, 0, 1]
+])
+bproc.camera.add_camera_pose(cam2world)
+
+
+poi = [obj_x, obj_y, 0.0]
 rotation_matrix = bproc.camera.rotation_from_forward_vec([0.0, 0.0, 1.0])#, inplane_rot=np.random.uniform(-0.7854, 0.7854))
 cam2world_matrix = bproc.math.build_transformation_mat(poi, rotation_matrix)
 bproc.camera.add_camera_pose(cam2world_matrix)
 
-adj_f = cam_z2obj / obj_z
+# z/f = z'/f'
 bproc.camera.set_intrinsics_from_K_matrix(
-    [[fx * adj_f, 0.0, img_x * 0.5],
-     [0.0, fy * adj_f, img_y * 0.5],
+    [[fx * adj_f, 0.0, 320],
+     [0.0, fy * adj_f, 240],
      [0.0, 0.0, 1.0]], img_x, img_y
 )
+#bproc.camera.set_intrinsics_from_K_matrix(
+#    [[fx, 0.0, 640],
+#     [0.0, fy, 360],
+#     [0.0, 0.0, 1.0]], 1280, 720
+#)
 
 # compute background plane size
 plane_width = ((img_x * 1.0) / fx) * 0.5
 plane_height = ((img_y * 1.0) / fy) * 0.5
 
-shift_plane_factor = (poi[2] + 1.0) / poi[2]
-plane_location = [obj_x, obj_y, poi[2] + 1.0]
-print('cam_location: ', poi)
-print('plane_location: ', plane_location)
+#shift_plane_factor = (poi[2] + 1.0) / poi[2]
+plane_location = [obj_x, obj_y, obj_z + 1.0]
 
-roll, pitch, yaw = tf3d.euler.mat2euler(rotation_matrix)
-
-#room_plane = bproc.object.create_primitive('PLANE', scale=[plane_width, plane_height, 1], location=[0.0, 0.0, 1.0], rotation=[np.pi, 0, 0])
-room_plane = bproc.object.create_primitive('PLANE', scale=[plane_width, plane_height, 1], location=plane_location, rotation=[roll, pitch, yaw])
+room_plane = bproc.object.create_primitive('PLANE', scale=[plane_width, plane_height, 1], location=plane_location, rotation=[np.pi, 0, 0])
+#room_plane = bproc.object.create_primitive('PLANE', scale=[plane_width, plane_height, 1], location=plane_location, rotation=[roll, pitch, yaw])
 room_plane.add_uv_mapping('smart')
 #light_plane_material = bproc.material.create('light_material')
 #light_plane_material.make_emissive(emission_strength=10, emission_color=[1.0, 1.0, 1.0, 1.0])
@@ -286,10 +284,6 @@ for iidx, b_img in enumerate(os.listdir(back_dir)):
 
     out_img_name = b_img.split("_")[-1][:-4]
     out_enum = str(int(out_img_name)+2)
-    print(out_img_name)
-    print(int(out_img_name))
-    print(int(out_img_name) + 2)
-    print(str(int(out_img_name)+2))
     out_img_name = name_template[:-len(out_enum)] + out_enum + '.png'
     out_calib = os.path.join(out_dir, 'Calibration', obj_name)
     save_img = os.path.join(out_calib, out_img_name)
@@ -305,9 +299,24 @@ for iidx, b_img in enumerate(os.listdir(back_dir)):
 #light_plane_material.make_emissive(emission_strength=5, emission_color=[1.0, 1.0, 1.0, 1.0])
 #light_plane.replace_materials(light_plane_material)
 
-#coco_img = os.path.join(root_path, 'COCO_train2014_000000000009.jpg')
-image = bpy.data.images.load(filepath=coco_img)
-plane_mat = bproc.material.create_material_from_texture(coco_img, 'coco_image')
+fx = 675.61713
+fy = 675.61713
+cx = 632.1181
+cy = 338.28537
+
+bproc.camera.set_intrinsics_from_K_matrix(
+    [[fx, 0.0, 640],
+     [0.0, fy, 360],
+     [0.0, 0.0, 1.0]], 1280, 720
+)
+
+plane_width = ((1280 * 1.0) / fx) * 0.5
+plane_height = ((720 * 1.0) / fy) * 0.5
+plane_location = [0.0, 0.0, 1.0]
+room_plane = bproc.object.create_primitive('PLANE', scale=[plane_width, plane_height, 1], location=plane_location, rotation=[np.pi, 0, 0])
+
+coco_img = os.path.join(root_path, 'COCO_train2014_000000000009.jpg')
+plane_mat = bproc.material.create_material_from_texture(scene_img, 'coco_image')
 plane_mat.make_emissive(emission_strength=10, emission_color=[1.0, 1.0, 1.0, 1.0])
 texture = plane_mat.get_the_one_node_with_type("ShaderNodeTexImage")
 emission = plane_mat.new_node('ShaderNodeEmission')
@@ -321,3 +330,6 @@ data_img = bproc.renderer.render()
 img_img = data_img["colors"][0]
 save_img = os.path.join(out_dir, obj_name + '.png')
 cv2.imwrite(save_img, img_img)
+
+
+
