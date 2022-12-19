@@ -19,7 +19,23 @@ back_dir = os.path.join(root_path, 'graycode_512_512')
 out_dir = os.path.join(root_path, 'Images')
 calib_dir = os.path.join(out_dir, 'Calibration')
 mesh_dir = os.path.join(root_path, 'bottle.ply')
-scene_img = os.path.join(root_path, '000000.jpg')
+scene_img = os.path.join(root_path, '000061.png')
+
+# need to implement data loader for bop annotation
+# poses, intrinsics, names, mesh = data_loader(bop_base_dir)
+# poses: [[4x4], ....]
+# intrinsics: [{"cx": 325.2611,
+#   "cy": 242.04899,
+#   "depth_scale": 1.0,
+#   "fx": 572.4114,
+#   "fy": 573.57043,
+#   "height": 480,
+#   "width": 640}, ....]
+# name: [{"data": "train", "dir": "000000", "img":, "000035"}, ....]
+# mesh: bottle.ply
+
+
+#for pdx, (pose, intri, name) in enumerate(zip(poses, intrinsics, names)):
 
 bproc.init()
 # activate depth rendering without antialiasing and set amount of samples for color rendering
@@ -47,42 +63,30 @@ bproc.renderer.set_light_bounces(glossy_bounces=max_bounces, max_bounces=max_bou
 
 #######################################
 # example for image to crop transform
-# pose 000000.png
-# [{'cam_R_m2c': [0.9985835999418678,
-#    0.0,
-#    -0.05320520582744299,
-#    -0.0438628583287136,
-#    -0.5659943101033659,
-#    -0.8232414533961775,
-#    -0.030113843766211186,
-#    0.8244091465592889,
-#    -0.5651926357296327],
-#   'cam_t_m2c': [-0.034610493479483875, 0.0876175923765, 0.7220573983027752],
-#   'obj_id': 0}]
-#'bbox_obj': [578.0019607843137,
-#   379.0019607843137,
-#   42.99607843137255,
-#   80.99607843137255]
+# 000000
+#bbox = [578.0019607843137, 379.0019607843137, 42.99607843137255, 80.99607843137255]
+#obj_x = -0.034610493479483875
+#obj_y = 0.0876175923765
+#obj_z = 0.7220573983027752
+#obj_rot = np.array([0.9985835999418678, 0.0, -0.05320520582744299, -0.0438628583287136, -0.5659943101033659, -0.8232414533961775, -0.030113843766211186, 0.8244091465592889, -0.5651926357296327]).reshape((3,3))
 
-# pose 000061.png
-#[{'cam_R_m2c': [-0.9995393130026848,
-#   0.0,
-#   0.030350646815551646,
-#   -0.02331672088140944,
-#   0.6401563999554845,
-#   -0.7678906915202008,
-#   -0.019429160801763937,
-#   -0.7682446118236259,
-#   -0.6398614882257766],
-#  'cam_t_m2c': [0.26973332151456003, 0.1904499657979891, 0.6956919954771391],
-#  'obj_id': 0}]
-#'bbox_obj': [563.0019607843137,
-#   583.0019607843137,
-#   36.99607843137255,
-#   61.99607843137255]
+# 000061
+bbox =  [563.0019607843137, 583.0019607843137, 36.99607843137255, 61.99607843137255]
+obj_x = -0.06191940905313875
+obj_y = 0.337938141247261
+obj_z = 0.8315059198991654
+obj_rot = np.array([0.9999277279972268,
+   0.0,
+   -0.012022428303010842,
+   -0.009611888642069338,
+   -0.6006708255034048,
+   -0.7994386599269451,
+   -0.007221521933325013,
+   0.7994964411359554,
+   -0.600627413819839]).reshape((3,3))
 
 # pose 000118.png
-#[{'cam_R_m2c': [0.7803792476425656,
+#obj_rot = np.array([0.7803792476425656,
 #   0.6246155216319488,
 #   -0.029388432848193122,
 #   0.2972507968656275,
@@ -90,30 +94,18 @@ bproc.renderer.set_light_bounces(glossy_bounces=max_bounces, max_bounces=max_bou
 #   -0.8613798866984319,
 #   -0.5501365227028412,
 #   0.663467252833403,
-#   -0.5071104522745751],
-#  'cam_t_m2c': [0.17482042977070372, 0.34412885644715147, 0.9911807242853785],
-#  'obj_id': 0}]
-#'bbox_obj': [735.0019607843137,
-#   544.0019607843137,
-#   31.996078431372553,
-#   57.99607843137255]
+#   -0.5071104522745751]).reshape(3,3)
+#obj_x, obj_y, obj_z = 0.17482042977070372, 0.34412885644715147, 0.9911807242853785
+#bbox = [735.0019607843137, 544.0019607843137, 31.996078431372553, 57.99607843137255]
 
 ################
 # place object
 # those are placeholders, to be replaced for online computation
-img_x, img_y = 512, 512
-#fx, fy = 537.4799, 536.1447
+img_x, img_y = 960, 720
 fx = 675.61713 / 1.5
 fy = 675.61713 / 1.5
 cx = (632.1181 - 160.0) / 1.5
 cy = 338.28537 / 1.5
-
-bbox = [578.0019607843137, 379.0019607843137, 42.99607843137255, 80.99607843137255]
-obj_x = -0.034610493479483875
-obj_y = 0.0876175923765
-obj_z = 0.7220573983027752
-obj_rot = np.array([0.9985835999418678, 0.0, -0.05320520582744299, -0.0438628583287136, -0.5659943101033659, -0.8232414533961775, -0.030113843766211186, 0.8244091465592889, -0.5651926357296327]).reshape((3,3))
-
 
 #bproc.camera.set_intrinsics_from_K_matrix(
 #    [[fx, 0.0, img_x * 0.5],
@@ -133,67 +125,45 @@ obj.set_rotation_euler([roll, pitch, yaw])
 ###################
 # position camera facing to object
 # using bounding box to comp distance
-max_box = np.max([bbox[2], bbox[3]])
+max_box = np.max([bbox[2], bbox[3]])# * 1.5
+max_arg = np.argmax([bbox[2], bbox[3]])
 
-max_box_3D = ((max_box * 1.5 * obj_z) / fx) # 1.5 for increasing bounding box size and for accounting for bbox inaccuracies
+f_temp = fx
+if max_arg == 1:
+    f_temp = fy
 
 # z/f = z'/f'
 #adj_f = max_box / 512.0
-adj_f = 512.0 / max_box
-
-#print('max_box_3D: ', max_box_3D)
-#cam_z2obj = ((max_box_3D * fx) / max_box ) * 0.5
-#print('cam_z2obj: ', cam_z2obj)
+#adj_f = 512.0 / max_box
+#f_temp = max_box / 960
+f_temp = (f_temp * 512.0) / max_box
 
 cam2world = np.array([
-    [1, 0, 0, 0],
-    [0, -1, 0, 0],
+    [1, 0, 0, obj_x],
+    [0, -1, 0, obj_y],
     [0, 0, -1, 0],
     [0, 0, 0, 1]
 ])
 bproc.camera.add_camera_pose(cam2world)
 
-
-poi = [obj_x, obj_y, 0.0]
-rotation_matrix = bproc.camera.rotation_from_forward_vec([0.0, 0.0, 1.0])#, inplane_rot=np.random.uniform(-0.7854, 0.7854))
-cam2world_matrix = bproc.math.build_transformation_mat(poi, rotation_matrix)
-bproc.camera.add_camera_pose(cam2world_matrix)
-
 # z/f = z'/f'
 bproc.camera.set_intrinsics_from_K_matrix(
-    [[fx * adj_f, 0.0, 320],
-     [0.0, fy * adj_f, 240],
-     [0.0, 0.0, 1.0]], img_x, img_y
+    [[f_temp, 0.0, 256],
+     [0.0, f_temp, 256],
+     [0.0, 0.0, 1.0]], 512, 512
 )
-#bproc.camera.set_intrinsics_from_K_matrix(
-#    [[fx, 0.0, 640],
-#     [0.0, fy, 360],
-#     [0.0, 0.0, 1.0]], 1280, 720
-#)
+
+print('f: ', f_temp)
 
 # compute background plane size
-plane_width = ((img_x * 1.0) / fx) * 0.5
-plane_height = ((img_y * 1.0) / fy) * 0.5
+plane_width = ((512.0 * (obj_z + 0.1)) / f_temp) * 0.5
+plane_height = ((512.0 * (obj_z + 0.1)) / f_temp) * 0.5
 
 #shift_plane_factor = (poi[2] + 1.0) / poi[2]
-plane_location = [obj_x, obj_y, obj_z + 1.0]
+plane_location = [obj_x, obj_y, obj_z + 0.1]
 
 room_plane = bproc.object.create_primitive('PLANE', scale=[plane_width, plane_height, 1], location=plane_location, rotation=[np.pi, 0, 0])
-#room_plane = bproc.object.create_primitive('PLANE', scale=[plane_width, plane_height, 1], location=plane_location, rotation=[roll, pitch, yaw])
 room_plane.add_uv_mapping('smart')
-#light_plane_material = bproc.material.create('light_material')
-#light_plane_material.make_emissive(emission_strength=10, emission_color=[1.0, 1.0, 1.0, 1.0])
-#room_plane.replace_materials(light_plane_material)
-
-
-
-# sample point light on shell
-#light_point = bproc.types.Light()
-#light_point.set_energy(200)
-#light_point.set_color(np.random.uniform([1.0,1.0,1.0],[1,1,1]))
-#location = bproc.sampler.shell(center = [0, 0, 0], radius_min = 1, radius_max = 1.5,
-#                            elevation_min = 5, elevation_max = 89)
-#light_point.set_location([0.0, 0.0, -1.0])
 
 for mat in obj.get_materials():
 
@@ -299,23 +269,36 @@ for iidx, b_img in enumerate(os.listdir(back_dir)):
 #light_plane_material.make_emissive(emission_strength=5, emission_color=[1.0, 1.0, 1.0, 1.0])
 #light_plane.replace_materials(light_plane_material)
 
+'''
 fx = 675.61713
 fy = 675.61713
 cx = 632.1181
 cy = 338.28537
 
+cam2world = np.array([
+    [1, 0, 0, -obj_x],
+    [0, -1, 0, -obj_y],
+    [0, 0, -1, 0],
+    [0, 0, 0, 1]
+])
+bproc.camera.add_camera_pose(cam2world)
+
 bproc.camera.set_intrinsics_from_K_matrix(
-    [[fx, 0.0, 640],
-     [0.0, fy, 360],
+    [[fx, 0.0, cx],
+     [0.0, fy, cy],
      [0.0, 0.0, 1.0]], 1280, 720
 )
 
-plane_width = ((1280 * 1.0) / fx) * 0.5
-plane_height = ((720 * 1.0) / fy) * 0.5
-plane_location = [0.0, 0.0, 1.0]
-room_plane = bproc.object.create_primitive('PLANE', scale=[plane_width, plane_height, 1], location=plane_location, rotation=[np.pi, 0, 0])
+plane_width = ((1280 * (obj_z + 0.1)) / fx) * 0.5
+plane_height = ((720 * (obj_z + 0.1)) / fy) * 0.5
+#plane_x = ((640 - cx) / fx) * 0.5
+#plane_y = ((360 - cy) / fy) * 0.5
+plane_x = 0.0
+plane_y = 0.0
+plane_location = [plane_x, plane_y, obj_z + 0.1]
+room_plane.set_location(plane_location)
+room_plane.set_scale([plane_width, plane_height, 1])
 
-coco_img = os.path.join(root_path, 'COCO_train2014_000000000009.jpg')
 plane_mat = bproc.material.create_material_from_texture(scene_img, 'coco_image')
 plane_mat.make_emissive(emission_strength=10, emission_color=[1.0, 1.0, 1.0, 1.0])
 texture = plane_mat.get_the_one_node_with_type("ShaderNodeTexImage")
@@ -330,6 +313,6 @@ data_img = bproc.renderer.render()
 img_img = data_img["colors"][0]
 save_img = os.path.join(out_dir, obj_name + '.png')
 cv2.imwrite(save_img, img_img)
-
+'''
 
 
