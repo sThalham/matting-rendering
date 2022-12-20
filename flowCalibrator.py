@@ -17,8 +17,6 @@ class FlowCalibrator:
     def obtainImgBinaryCode(self, sub_imgs, h, w):
         binary_code = np.chararray((h, w)); binary_code[:]=''
         for img in sub_imgs:
-            if len(img.shape) > 2:
-                img = img[:, :, 0]
             bit_code = np.chararray((h,w), itemsize=1)
             bit_code[img >  190] = '1'
             bit_code[img <= 190] = '0'
@@ -43,6 +41,8 @@ class FlowCalibrator:
         self.flow_y_idx -= self.y_grid
         self.flow_x_idx[self.mask >= 200] = 0
         self.flow_y_idx[self.mask >= 200] = 0
+        #self.flow_x_idx[self.mask >= 200] = 255
+        #self.flow_y_idx[self.mask >= 200] = 255
         self.saveFlow(self.flow_x_idx, self.flow_y_idx, self.rho)
 
     def flowWithRho(self, flow_color, rho):
