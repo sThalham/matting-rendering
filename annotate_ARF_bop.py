@@ -5,6 +5,7 @@ import sys
 import numpy as np
 import bpy
 import json
+import copy
 
 import cv2
 import transforms3d as tf3d
@@ -33,7 +34,7 @@ if os.path.exists(calib_dir) == False:
 
 #camera template
 #camera_name = 'camera_' + args.split.split("_")[-1] + '.json'
-camera_name = 'camera.json'
+camera_name = 'camera_primesense.json'
 gen_cam_path = os.path.join(args.root, camera_name)
 with open(gen_cam_path, 'r') as stream_temp:
     cam_data = json.load(stream_temp)
@@ -161,17 +162,32 @@ for sdx, subset in enumerate(subsets):
             [0.0, 0.0, 1.0]], 512, 512
             )
 
+            ###### compute plane offset from object
+            T = np.eye(4)
+            T[:3, :3] = R
+            T[0, 3] = t[0]
+            T[1, 3] = t[1]
+            T[2, 3] = t[2]
+            mesh_t = copy.deepcopy(mesh).transform(T)
+            mesh_t_numpy = np.asarray(mesh_t.vertices)
+            mesh_t_point_cld = trimesh.points.PointCloud(mesh_t_numpy)
+            centroid_z = mesh_t_point_cld.centroid[2]
+            plane_offset = mesh_t_point_cld.centroid[2] - np.max(mesh_t_numpy[:, 2])
+            ###### compute plane offset from object
+
+            plane_distance = t[2] + 0.5 + plane_offset
             # compute background plane size
-            plane_width = ((512.0 * (t[2] + 0.1)) / f_adapt) * 0.5
-            plane_height = ((512.0 * (t[2] + 0.1)) / f_adapt) * 0.5
+            plane_width = ((512.0 * plane_distance) / f_adapt) #* 0.5
+            plane_height = ((512.0 * plane_distance) / f_adapt) #* 0.5
             room_plane.set_scale([plane_width, plane_height, 1])
 
             #shift_plane_factor = (poi[2] + 1.0) / poi[2]
-            plane_location = [t[0], t[1], t[2] + 0.1]
+            plane_location = [t[0], t[1], plane_distance]
             room_plane.set_location(plane_location)
 
             data_seg = bproc.renderer.render_segmap()
             img_seg = data_seg["class_segmaps"][0]
+            print(data_seg["class_segmaps"])
             save_img = os.path.join(out_dir, subset, train_sample[:-4] + '_' + str(adx) + '_mask.png')
             if os.path.exists(os.path.join(out_dir, subset)) == False:
                 os.makedirs(os.path.join(out_dir, subset))
