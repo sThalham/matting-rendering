@@ -1,3 +1,6 @@
+# requirements
+blenderproc==2.4.1
+
 # matting_rendering
 
 Render Attenuation and Refractive Flow (ARF) annotation for BOP datasets. Call rendering script with:
