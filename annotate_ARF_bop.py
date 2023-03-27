@@ -22,6 +22,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--root', help="Path to base directory", type=str)
 parser.add_argument('--split', help="Dataset split name", type=str)
 parser.add_argument('--meshes', help="Meshes dir in root", type=str)
+parser.add_argument('--box_scale', help="Scale to increase expected bbox detection error", type=float)
 args = parser.parse_args()
 
 #root_path = '/home/stefan/matting_rendering'
@@ -34,6 +35,8 @@ calib_dir = os.path.join(out_dir, 'calib')
 name_template = 'graycode_00'
 if os.path.exists(calib_dir) == False:
     os.makedirs(calib_dir)
+
+bbox_scale = args.box_scale
 
 #camera template
 #camera_name = 'camera_' + args.split.split("_")[-1] + '.json'
@@ -147,7 +150,7 @@ for sdx, subset in enumerate(subsets):
             f_temp = fx
             if max_arg == 1:
                 f_temp = fy
-            f_adapt = (f_temp * 512.0) / (max_box)# * 0.5)
+            f_adapt = (f_temp * 512.0) / (max_box * bbox_scale)
 
             cam2world = np.array([
                 [1, 0, 0, t[0]],
